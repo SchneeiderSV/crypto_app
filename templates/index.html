@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Cryptocurrency Calculator</title>
+    <script src="https://unpkg.com/htmx.org@1.6.1"></script>
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <h1>Cryptocurrency Calculator</h1>
+    <form hx-post="/calculate" hx-target="#result">
+      <label for="cryptocurrency">Cryptocurrency:</label>
+      <select id="cryptocurrency" name="cryptocurrency" required>
+        <option value="bitcoin">Bitcoin (BTC)</option>
+        <option value="ethereum">Ethereum (ETH)</option>
+        <option value="ripple">Ripple (XRP)</option>
+        <option value="litecoin">Litecoin (LTC)</option>
+        <option value="cardano">Cardano (ADA)</option>
+      </select>
+      <br />
+      <label for="brl_value">Value in BRL:</label>
+      <input type="number" id="brl_value" name="brl_value" required />
+      <br />
+      <button type="submit">Calculate</button>
+
+      <div id="result"></div>
+    </form>
+
+    <div class="container">
+      <div class="b1">
+        <div id="transactions">
+          <h2>Last 10 Transactions</h2>
+          {% for transaction in transactions %}
+          <p>
+            {{ transaction[2] }} BRL -> {{ transaction[1] }} {{ transaction[0]
+            }}
+          </p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="b2">
+        <h2>Transaction History Chart</h2>
+        <label for="cryptoSelect">Select Cryptocurrency:</label>
+        <select id="cryptoSelect">
+          <option value="bitcoin">Bitcoin (BTC)</option>
+          <option value="ethereum">Ethereum (ETH)</option>
+          <option value="ripple">Ripple (XRP)</option>
+          <option value="litecoin">Litecoin (LTC)</option>
+          <option value="cardano">Cardano (ADA)</option>
+        </select>
+        <canvas id="transactionChart" width="400" height="200"></canvas>
+        <button id="load">Carregar</button>
+      </div>
+    </div>
+
+    <script>
+      let chart;
+      document.getElementById("load").addEventListener("click", function () {
+        const selectedCrypto = document.getElementById("cryptoSelect").value;
+        fetch(`/history?crypto=${selectedCrypto}`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (Array.isArray(data)) {
+              const ctx = document
+                .getElementById("transactionChart")
+                .getContext("2d");
+
+              if (chart) chart.destroy();
+
+              chart = new Chart(ctx, {
+                type: "line",
+                data: {
+                  labels: data.map((transaction) => transaction.date),
+                  datasets: [
+                    {
+                      label: `Transaction Value in ${selectedCrypto.toUpperCase()}`,
+                      data: data.map((transaction) => transaction.crypto_value),
+                      borderColor: "rgba(75, 192, 192, 1)",
+                      backgroundColor: "rgba(75, 192, 192, 0.2)",
+                      borderWidth: 1,
+                    },
+                  ],
+                },
+                options: {
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                    },
+                  },
+                },
+              });
+            } else {
+              console.error("Unexpected data format:", data);
+            }
+          })
+          .catch((error) => console.error("Error fetching data:", error));
+      });
+    </script>
+  </body>
+</html>
